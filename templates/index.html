@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="bg">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Timing Attacks Lab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/static/app.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="wrap">
+        <div class="brand">
+          <div class="brand__title">Timing Attacks Lab</div>
+          <div class="brand__sub">HMAC-SHA256: naive vs constant-time, noise models, statistical decision</div>
+        </div>
+        <div class="pill">Cryptography &amp; Data Security</div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="grid">
+        <div class="card">
+          <h2>Attack Run</h2>
+          <form id="runForm" class="form">
+            <label>
+              Message
+              <input name="message" value="hello" />
+            </label>
+
+            <div class="row">
+              <label>
+                Mode
+                <select name="mode">
+                  <option value="naive">naive (vulnerable)</option>
+                  <option value="constant">constant-time (defended)</option>
+                </select>
+              </label>
+
+              <label>
+                Decision
+                <select name="decision">
+                  <option value="ttest">t-test</option>
+                  <option value="ks">KS-test</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="row">
+              <label>
+                Noise profile
+                <select name="noise_profile">
+                  <option value="none">none (baseline)</option>
+                  <option value="jitter">jitter</option>
+                  <option value="cpu">cpu load</option>
+                </select>
+              </label>
+
+              <label>
+                Jitter (us)
+                <input name="jitter_us" type="number" value="0" min="0" step="100" />
+              </label>
+            </div>
+
+            <div class="row">
+              <label>
+                CPU threads
+                <input name="cpu_threads" type="number" value="0" min="0" step="1" />
+              </label>
+
+              <label>
+                Fixed delay (ms)
+                <input name="fixed_delay_ms" type="number" value="0" min="0" step="0.5" />
+              </label>
+            </div>
+
+            <div class="row">
+              <label>
+                Byte delay (us)
+                <input name="byte_delay_us" type="number" value="800" min="0" step="50" />
+              </label>
+
+              <label>
+                Tag length (bytes)
+                <input name="tag_len" type="number" value="8" min="1" max="32" step="1" />
+              </label>
+            </div>
+
+            <div class="row">
+              <label>
+                Repetitions per guess
+                <input name="repetitions_per_guess" type="number" value="30" min="5" step="5" />
+              </label>
+
+              <label>
+                Alpha
+                <input name="alpha" type="number" value="0.01" min="0.0001" max="0.2" step="0.001" />
+              </label>
+            </div>
+
+            <div class="row">
+              <label>
+                Top-K candidates
+                <input name="top_k" type="number" value="16" min="2" max="256" step="1" />
+              </label>
+
+              <label>
+                Coarse reps
+                <input name="coarse_repetitions" type="number" value="10" min="2" step="1" />
+              </label>
+            </div>
+
+            <div class="actions">
+              <button class="btn" type="submit">Run attack</button>
+              <a class="btn btn--ghost" id="openCsv" href="#" aria-disabled="true">CSV</a>
+            </div>
+          </form>
+
+          <div class="status" id="status">
+            <div class="status__line">Idle.</div>
+            <div class="meter" aria-hidden="true"><div class="meter__bar" id="meterBar"></div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Results</h2>
+          <div class="kpis" id="kpis">
+            <div class="kpi"><div class="kpi__k">Attack accuracy</div><div class="kpi__v" id="acc">-</div></div>
+            <div class="kpi"><div class="kpi__k">Samples needed</div><div class="kpi__v" id="samples">-</div></div>
+            <div class="kpi"><div class="kpi__k">Overhead</div><div class="kpi__v" id="overhead">-</div></div>
+          </div>
+
+          <div class="mono" id="tags"></div>
+
+          <div class="plots" id="plots" hidden>
+            <img id="plotP" alt="p-values plot" />
+            <img id="plotM" alt="means plot" />
+            <img id="plotO" alt="overhead plot" />
+          </div>
+        </div>
+      </section>
+
+      <section class="note">
+        <h3>What this demonstrates</h3>
+        <p>
+          The API returns the same response text regardless of correctness. The attack relies only on timing
+          differences caused by a vulnerable byte-by-byte comparison (plus optional noise).
+        </p>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

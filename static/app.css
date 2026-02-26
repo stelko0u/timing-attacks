@@ -1,0 +1,141 @@
+:root{
+  --bg0:#f3f0e8;
+  --bg1:#efe6d4;
+  --ink:#1b1b1b;
+  --muted:#5a5a5a;
+  --card:#fffdf8;
+  --line:rgba(27,27,27,.12);
+  --accent:#0f766e;
+  --accent2:#b45309;
+  --danger:#b91c1c;
+  --shadow:0 10px 30px rgba(0,0,0,.10);
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  color:var(--ink);
+  font-family:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  background:
+    radial-gradient(900px 500px at 15% 10%, rgba(15,118,110,.18), transparent 60%),
+    radial-gradient(900px 520px at 85% 15%, rgba(180,83,9,.18), transparent 60%),
+    linear-gradient(180deg, var(--bg1), var(--bg0));
+}
+
+.wrap{max-width:1100px; margin:0 auto; padding:20px}
+
+.top{
+  position:sticky; top:0; z-index:5;
+  backdrop-filter:saturate(1.1) blur(10px);
+  background:rgba(243,240,232,.72);
+  border-bottom:1px solid var(--line);
+}
+.top .wrap{display:flex; align-items:center; justify-content:space-between; gap:16px}
+
+.brand__title{
+  font-family:"Fraunces", ui-serif, Georgia, serif;
+  font-weight:700;
+  letter-spacing:.2px;
+  font-size:22px;
+}
+.brand__sub{color:var(--muted); font-size:13px; margin-top:2px}
+
+.pill{
+  font-size:12px;
+  padding:8px 10px;
+  border:1px solid var(--line);
+  background:rgba(255,253,248,.8);
+  border-radius:999px;
+}
+
+.grid{display:grid; grid-template-columns: 1.05fr .95fr; gap:18px; align-items:start}
+@media (max-width: 920px){
+  .grid{grid-template-columns:1fr}
+}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:18px;
+  box-shadow:var(--shadow);
+  padding:18px;
+  animation: rise .45s ease both;
+}
+
+@keyframes rise{from{transform:translateY(6px);opacity:.0}to{transform:translateY(0);opacity:1}}
+
+h2{
+  margin:0 0 14px 0;
+  font-family:"Fraunces", ui-serif, Georgia, serif;
+  font-size:18px;
+}
+
+.form label{display:block; font-size:12px; color:var(--muted); margin-bottom:10px}
+.form input,.form select{
+  width:100%;
+  margin-top:6px;
+  padding:10px 10px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:rgba(255,255,255,.55);
+  outline:none;
+}
+.form input:focus,.form select:focus{border-color:rgba(15,118,110,.5); box-shadow:0 0 0 4px rgba(15,118,110,.12)}
+
+.row{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+@media (max-width: 520px){
+  .row{grid-template-columns:1fr}
+}
+
+.actions{display:flex; gap:10px; margin-top:6px; align-items:center}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid rgba(15,118,110,.55);
+  background:linear-gradient(180deg, rgba(15,118,110,.14), rgba(15,118,110,.06));
+  color:var(--ink);
+  font-weight:600;
+  text-decoration:none;
+  cursor:pointer;
+}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn--ghost{
+  border-color:var(--line);
+  background:transparent;
+  color:var(--muted);
+}
+.btn[aria-disabled="true"], .btn--ghost[aria-disabled="true"]{opacity:.55; pointer-events:none}
+
+.status{margin-top:14px; border-top:1px dashed var(--line); padding-top:14px}
+.status__line{font-size:13px; color:var(--muted)}
+.meter{height:10px; margin-top:10px; border-radius:999px; border:1px solid var(--line); background:rgba(0,0,0,.03); overflow:hidden}
+.meter__bar{height:100%; width:0%; background:linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .2s ease}
+
+.kpis{display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:10px}
+@media (max-width: 520px){
+  .kpis{grid-template-columns:1fr}
+}
+.kpi{border:1px solid var(--line); border-radius:14px; padding:10px; background:rgba(255,255,255,.45)}
+.kpi__k{font-size:12px; color:var(--muted)}
+.kpi__v{margin-top:6px; font-family:"Fraunces", ui-serif, Georgia, serif; font-size:18px}
+
+.mono{
+  margin-top:10px;
+  padding:10px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:rgba(27,27,27,.03);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size:12px;
+  overflow:auto;
+}
+
+.plots{display:grid; grid-template-columns:1fr; gap:12px; margin-top:12px}
+.plots img{width:100%; border-radius:14px; border:1px solid var(--line); background:#fff}
+
+.note{margin:18px 0 30px 0; padding:16px 18px; border-radius:18px; border:1px solid var(--line); background:rgba(255,253,248,.75)}
+.note h3{margin:0 0 8px 0; font-family:"Fraunces", ui-serif, Georgia, serif; font-size:16px}
+.note p{margin:0; color:var(--muted); line-height:1.45}
