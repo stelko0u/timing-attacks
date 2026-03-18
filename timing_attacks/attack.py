@@ -89,7 +89,7 @@ def run_attack(
         samples_total += 256 * r0
 
         top_k = int(max(2, min(256, attack_cfg.top_k)))
-        candidates = list(np.argsort(means)[-top_k:][::-1])
+        candidates = [int(x) for x in np.argsort(means)[-top_k:][::-1]]
 
         # Stage 2: refine top-k until we can decide.
         per_candidate = {int(b): coarse_samples[int(b)] for b in candidates}
