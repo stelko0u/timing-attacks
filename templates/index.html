@@ -6,41 +6,806 @@
     <title>Timing Attacks Lab</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/static/app.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #080b0f;
+        --bg1: #0d1117;
+        --bg2: #111720;
+        --card: #0f1520;
+        --card2: #131b27;
+        --border: rgba(99, 210, 255, 0.1);
+        --border2: rgba(99, 210, 255, 0.18);
+        --ink: #e2eaf5;
+        --muted: #5c7396;
+        --muted2: #8aa4c0;
+        --teal: #00d4b8;
+        --teal2: #00b5a0;
+        --amber: #f5a623;
+        --amber2: #d48a14;
+        --red: #ff4d4d;
+        --glow-teal: 0 0 24px rgba(0, 212, 184, 0.25);
+        --glow-amber: 0 0 24px rgba(245, 166, 35, 0.25);
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html {
+        height: 100%;
+      }
+
+      body {
+        min-height: 100%;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        overflow-x: hidden;
+        position: relative;
+      }
+
+      /* ── Grid noise texture ── */
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(99, 210, 255, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(99, 210, 255, 0.03) 1px, transparent 1px);
+        background-size: 40px 40px;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* ── Ambient glows ── */
+      body::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(
+            ellipse 700px 500px at -10% 5%,
+            rgba(0, 212, 184, 0.08) 0%,
+            transparent 70%
+          ),
+          radial-gradient(
+            ellipse 500px 600px at 110% 80%,
+            rgba(245, 166, 35, 0.07) 0%,
+            transparent 70%
+          );
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .wrap {
+        max-width: 1160px;
+        margin: 0 auto;
+        padding: 0 28px;
+        position: relative;
+        z-index: 1;
+      }
+
+      /* ═══════════════════ HEADER ═══════════════════ */
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        border-bottom: 1px solid var(--border);
+        background: rgba(8, 11, 15, 0.82);
+        backdrop-filter: blur(18px) saturate(1.4);
+      }
+
+      .top__inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding-top: 14px;
+        padding-bottom: 14px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+
+      .brand__logo {
+        width: 38px;
+        height: 38px;
+        border: 1px solid var(--border2);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(
+          135deg,
+          rgba(0, 212, 184, 0.12),
+          rgba(245, 166, 35, 0.06)
+        );
+        position: relative;
+        flex-shrink: 0;
+      }
+
+      .brand__logo svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      .brand__eyebrow {
+        font-size: 10px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--teal);
+        font-weight: 500;
+        margin-bottom: 2px;
+      }
+
+      .brand__title {
+        font-family: 'Syne', ui-sans-serif, sans-serif;
+        font-weight: 800;
+        font-size: 18px;
+        letter-spacing: -0.01em;
+        color: var(--ink);
+      }
+
+      .hero-badge {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--amber);
+        border: 1px solid rgba(245, 166, 35, 0.25);
+        border-radius: 999px;
+        padding: 6px 14px;
+        background: rgba(245, 166, 35, 0.06);
+        font-weight: 500;
+      }
+
+      .hero-badge__dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--amber);
+        animation: pulse-amber 2s ease-in-out infinite;
+        flex-shrink: 0;
+      }
+
+      @keyframes pulse-amber {
+        0%,
+        100% {
+          opacity: 1;
+          box-shadow: 0 0 0 0 rgba(245, 166, 35, 0.4);
+        }
+        50% {
+          opacity: 0.7;
+          box-shadow: 0 0 0 5px rgba(245, 166, 35, 0);
+        }
+      }
+
+      /* ═══════════════════ HERO ═══════════════════ */
+      .hero {
+        padding: 56px 0 36px;
+      }
+
+      .hero__label {
+        font-size: 10px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--teal);
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .hero__label::before {
+        content: '';
+        display: block;
+        width: 32px;
+        height: 1px;
+        background: var(--teal);
+        opacity: 0.6;
+      }
+
+      h1 {
+        font-family: 'Syne', ui-sans-serif, sans-serif;
+        font-weight: 800;
+        font-size: clamp(26px, 4vw, 44px);
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+        max-width: 700px;
+        margin-bottom: 16px;
+      }
+
+      h1 em {
+        font-style: normal;
+        color: var(--teal);
+        position: relative;
+      }
+
+      .hero p {
+        font-size: 14px;
+        color: var(--muted2);
+        max-width: 560px;
+        line-height: 1.7;
+        font-family: 'JetBrains Mono', monospace;
+      }
+
+      /* ═══════════════════ GRID ═══════════════════ */
+      .grid {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 20px;
+        align-items: start;
+        padding-bottom: 40px;
+      }
+
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* ═══════════════════ CARDS ═══════════════════ */
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        overflow: hidden;
+        animation: fadeup 0.5s ease both;
+      }
+
+      .card--results {
+        animation-delay: 0.1s;
+      }
+
+      @keyframes fadeup {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .card__header {
+        padding: 20px 22px 18px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: linear-gradient(
+          180deg,
+          rgba(99, 210, 255, 0.03),
+          transparent
+        );
+      }
+
+      .section-head__kicker {
+        font-size: 10px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--teal);
+        margin-bottom: 4px;
+        font-weight: 500;
+      }
+
+      h2 {
+        font-family: 'Syne', ui-sans-serif, sans-serif;
+        font-weight: 700;
+        font-size: 16px;
+        letter-spacing: -0.01em;
+        color: var(--ink);
+      }
+
+      .card__tag {
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 4px 10px;
+        border-radius: 6px;
+        border: 1px solid var(--border2);
+        color: var(--muted2);
+        background: rgba(99, 210, 255, 0.04);
+      }
+
+      /* ═══════════════════ FORM ═══════════════════ */
+      .form {
+        padding: 20px 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+
+      .field {
+        display: block;
+      }
+
+      .field__label {
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+      }
+
+      .form input,
+      .form select {
+        width: 100%;
+        padding: 9px 12px;
+        background: rgba(10, 16, 26, 0.7);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        color: var(--ink);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 13px;
+        outline: none;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
+        -webkit-appearance: none;
+        appearance: none;
+      }
+
+      .form select {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235c7396' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        padding-right: 30px;
+        cursor: pointer;
+      }
+
+      .form input:focus,
+      .form select:focus {
+        border-color: rgba(0, 212, 184, 0.45);
+        box-shadow: 0 0 0 3px rgba(0, 212, 184, 0.08);
+        background: rgba(0, 212, 184, 0.04);
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .form-row.full {
+        grid-template-columns: 1fr;
+      }
+
+      @media (max-width: 480px) {
+        .form-row {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* ── Dividers in form ── */
+      .form-divider {
+        height: 1px;
+        background: var(--border);
+        margin: 10px 0 16px;
+      }
+
+      .form-section-label {
+        font-size: 10px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .form-section-label::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
+
+      .actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 16px 22px 20px;
+        border-top: 1px solid var(--border);
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        cursor: pointer;
+        text-decoration: none;
+        border: none;
+        transition:
+          transform 0.15s ease,
+          box-shadow 0.15s ease,
+          opacity 0.15s;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .btn::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.06);
+        opacity: 0;
+        transition: opacity 0.15s;
+      }
+
+      .btn:hover::after {
+        opacity: 1;
+      }
+      .btn:hover {
+        transform: translateY(-1px);
+      }
+      .btn:active {
+        transform: translateY(0);
+      }
+
+      .btn--primary {
+        background: linear-gradient(135deg, var(--teal), var(--teal2));
+        color: #05161a;
+        box-shadow:
+          0 4px 16px rgba(0, 212, 184, 0.3),
+          0 1px 3px rgba(0, 0, 0, 0.4);
+      }
+
+      .btn--primary:hover {
+        box-shadow:
+          0 6px 22px rgba(0, 212, 184, 0.4),
+          0 1px 3px rgba(0, 0, 0, 0.4);
+      }
+
+      .btn--secondary {
+        background: rgba(99, 210, 255, 0.07);
+        color: var(--muted2);
+        border: 1px solid var(--border2);
+      }
+
+      .btn[aria-disabled='true'] {
+        opacity: 0.4;
+        pointer-events: none;
+      }
+
+      /* ═══════════════════ STATUS ═══════════════════ */
+      .status {
+        padding: 14px 22px 18px;
+        border-top: 1px solid var(--border);
+      }
+
+      .status__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+
+      .status__title {
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-weight: 500;
+      }
+
+      .status__line {
+        font-size: 12px;
+        color: var(--teal);
+      }
+
+      .meter {
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(99, 210, 255, 0.08);
+        overflow: hidden;
+        border: none;
+      }
+
+      .meter__bar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--teal), var(--amber));
+        border-radius: 999px;
+        transition: width 0.25s ease;
+        box-shadow: 0 0 8px rgba(0, 212, 184, 0.5);
+      }
+
+      /* ═══════════════════ RESULTS ═══════════════════ */
+      .kpis {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+        padding: 18px 22px 0;
+      }
+
+      @media (max-width: 480px) {
+        .kpis {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .kpi {
+        padding: 14px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: var(--card2);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .kpi::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, var(--teal), transparent);
+        opacity: 0.5;
+      }
+
+      .kpi__icon {
+        font-size: 16px;
+        margin-bottom: 10px;
+        opacity: 0.5;
+      }
+
+      .kpi__k {
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+
+      .kpi__v {
+        font-family: 'Syne', sans-serif;
+        font-weight: 800;
+        font-size: 22px;
+        color: var(--ink);
+        letter-spacing: -0.02em;
+      }
+
+      .panel {
+        margin: 14px 22px 0;
+        padding: 14px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: rgba(5, 10, 18, 0.6);
+      }
+
+      .panel__title {
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 10px;
+      }
+
+      .mono {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12px;
+        color: var(--teal);
+        line-height: 1.8;
+        min-height: 24px;
+        white-space: pre;
+        overflow-x: auto;
+      }
+
+      .mono:empty::after {
+        content: '// awaiting run...';
+        opacity: 0.3;
+      }
+
+      .plots {
+        padding: 14px 22px 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .plot-card {
+        border-radius: 14px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        background: var(--card2);
+      }
+
+      .plot-card__title {
+        padding: 10px 14px;
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .plot-card img {
+        width: 100%;
+        display: block;
+        background: #fff;
+      }
+
+      /* ═══════════════════ NOTE ═══════════════════ */
+      .note {
+        margin: 0 0 40px;
+        padding: 18px 22px;
+        border-radius: 16px;
+        border: 1px solid rgba(245, 166, 35, 0.2);
+        background: rgba(245, 166, 35, 0.04);
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+        animation: fadeup 0.5s ease 0.2s both;
+      }
+
+      .note__icon {
+        font-size: 18px;
+        flex-shrink: 0;
+        margin-top: 1px;
+        color: var(--amber);
+        filter: drop-shadow(0 0 6px rgba(245, 166, 35, 0.5));
+      }
+
+      .note h3 {
+        font-family: 'Syne', sans-serif;
+        font-weight: 700;
+        font-size: 14px;
+        margin-bottom: 6px;
+        color: var(--amber);
+      }
+
+      .note p {
+        color: var(--muted2);
+        font-size: 12px;
+        line-height: 1.7;
+      }
+
+      /* ═══════════════════ SCROLLBAR ═══════════════════ */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: var(--bg);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(99, 210, 255, 0.2);
+        border-radius: 999px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(99, 210, 255, 0.35);
+      }
+
+      /* ── Scan-line effect (subtle) ── */
+      .scanlines {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 200;
+        background: repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          rgba(0, 0, 0, 0.03) 2px,
+          rgba(0, 0, 0, 0.03) 4px
+        );
+      }
+    </style>
   </head>
   <body>
-    <header class="top">
-      <div class="wrap">
+    <div class="scanlines" aria-hidden="true"></div>
+
+    <header>
+      <div class="wrap top__inner">
         <div class="brand">
-          <div class="brand__title">Timing Attacks Lab</div>
-          <div class="brand__sub">HMAC-SHA256: naive vs constant-time, noise models, statistical decision</div>
+          <div class="brand__logo">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <rect
+                x="3"
+                y="11"
+                width="18"
+                height="11"
+                rx="2"
+                stroke="#00d4b8"
+                stroke-width="1.5"
+              />
+              <path
+                d="M7 11V7a5 5 0 0 1 10 0v4"
+                stroke="#00d4b8"
+                stroke-width="1.5"
+                stroke-linecap="round"
+              />
+              <circle cx="12" cy="16" r="1.5" fill="#f5a623" />
+            </svg>
+          </div>
+          <div>
+            <div class="brand__eyebrow">Cryptography &amp; Data Security</div>
+            <div class="brand__title">Timing Attacks Lab</div>
+          </div>
         </div>
-        <div class="pill">Cryptography &amp; Data Security</div>
+        <div class="hero-badge">
+          <span class="hero-badge__dot"></span>
+          Cryptography & Data Security Lab
+        </div>
       </div>
     </header>
 
-    <main class="wrap">
-      <section class="grid">
-        <div class="card">
-          <h2>Attack Run</h2>
-          <form id="runForm" class="form">
-            <label>
-              Message
-              <input name="message" value="hello" />
-            </label>
+    <main class="wrap main">
+      <section class="hero">
+        <div class="hero__label">Interactive Security Demo</div>
+        <h1>
+          Visualize how <em>timing leakage</em> becomes a practical attack.
+        </h1>
+        <p>
+          Compare vulnerable and defended HMAC-SHA256 verification paths, inject
+          noise, and inspect how many samples are needed before the attack
+          becomes reliable.
+        </p>
+      </section>
 
-            <div class="row">
-              <label>
-                Mode
+      <section class="grid">
+        <!-- CONFIG CARD -->
+        <div class="card card--form">
+          <div class="card__header">
+            <div>
+              <div class="section-head__kicker">Configuration</div>
+              <h2>Attack Run</h2>
+            </div>
+            <span class="card__tag">HMAC-SHA256</span>
+          </div>
+
+          <form id="runForm" class="form">
+            <div class="form-row full" style="margin-bottom: 12px">
+              <label class="field">
+                <span class="field__label">Message</span>
+                <input name="message" value="hello" />
+              </label>
+            </div>
+
+            <div class="form-section-label">Comparison &amp; Statistics</div>
+            <div class="form-row" style="margin-bottom: 12px">
+              <label class="field">
+                <span class="field__label">Mode</span>
                 <select name="mode">
                   <option value="naive">naive (vulnerable)</option>
                   <option value="constant">constant-time (defended)</option>
                 </select>
               </label>
-
-              <label>
-                Decision
+              <label class="field">
+                <span class="field__label">Decision</span>
                 <select name="decision">
                   <option value="ttest">t-test</option>
                   <option value="ks">KS-test</option>
@@ -48,107 +813,223 @@
               </label>
             </div>
 
-            <div class="row">
-              <label>
-                Noise profile
+            <div class="form-section-label">Noise Profile</div>
+            <div class="form-row" style="margin-bottom: 12px">
+              <label class="field">
+                <span class="field__label">Noise profile</span>
                 <select name="noise_profile">
                   <option value="none">none (baseline)</option>
                   <option value="jitter">jitter</option>
                   <option value="cpu">cpu load</option>
                 </select>
               </label>
-
-              <label>
-                Jitter (us)
-                <input name="jitter_us" type="number" value="0" min="0" step="100" />
+              <label class="field">
+                <span class="field__label">Jitter (µs)</span>
+                <input
+                  name="jitter_us"
+                  type="number"
+                  value="0"
+                  min="0"
+                  step="100"
+                />
               </label>
             </div>
 
-            <div class="row">
-              <label>
-                CPU threads
-                <input name="cpu_threads" type="number" value="0" min="0" step="1" />
+            <div class="form-row" style="margin-bottom: 12px">
+              <label class="field">
+                <span class="field__label">CPU threads</span>
+                <input
+                  name="cpu_threads"
+                  type="number"
+                  value="0"
+                  min="0"
+                  step="1"
+                />
               </label>
-
-              <label>
-                Fixed delay (ms)
-                <input name="fixed_delay_ms" type="number" value="0" min="0" step="0.5" />
-              </label>
-            </div>
-
-            <div class="row">
-              <label>
-                Byte delay (us)
-                <input name="byte_delay_us" type="number" value="800" min="0" step="50" />
-              </label>
-
-              <label>
-                Tag length (bytes)
-                <input name="tag_len" type="number" value="8" min="1" max="32" step="1" />
-              </label>
-            </div>
-
-            <div class="row">
-              <label>
-                Repetitions per guess
-                <input name="repetitions_per_guess" type="number" value="30" min="5" step="5" />
-              </label>
-
-              <label>
-                Alpha
-                <input name="alpha" type="number" value="0.01" min="0.0001" max="0.2" step="0.001" />
+              <label class="field">
+                <span class="field__label">Fixed delay (ms)</span>
+                <input
+                  name="fixed_delay_ms"
+                  type="number"
+                  value="0"
+                  min="0"
+                  step="0.5"
+                />
               </label>
             </div>
 
-            <div class="row">
-              <label>
-                Top-K candidates
-                <input name="top_k" type="number" value="16" min="2" max="256" step="1" />
+            <div class="form-section-label">Attack Parameters</div>
+            <div class="form-row" style="margin-bottom: 12px">
+              <label class="field">
+                <span class="field__label">Byte delay (µs)</span>
+                <input
+                  name="byte_delay_us"
+                  type="number"
+                  value="800"
+                  min="0"
+                  step="50"
+                />
               </label>
-
-              <label>
-                Coarse reps
-                <input name="coarse_repetitions" type="number" value="10" min="2" step="1" />
+              <label class="field">
+                <span class="field__label">Tag length (bytes)</span>
+                <input
+                  name="tag_len"
+                  type="number"
+                  value="8"
+                  min="1"
+                  max="32"
+                  step="1"
+                />
               </label>
             </div>
 
-            <div class="actions">
-              <button class="btn" type="submit">Run attack</button>
-              <a class="btn btn--ghost" id="openCsv" href="#" aria-disabled="true">CSV</a>
+            <div class="form-row" style="margin-bottom: 12px">
+              <label class="field">
+                <span class="field__label">Reps per guess</span>
+                <input
+                  name="repetitions_per_guess"
+                  type="number"
+                  value="30"
+                  min="5"
+                  step="5"
+                />
+              </label>
+              <label class="field">
+                <span class="field__label">Alpha</span>
+                <input
+                  name="alpha"
+                  type="number"
+                  value="0.0001"
+                  min="0.0001"
+                  max="0.2"
+                  step="0.001"
+                />
+              </label>
+            </div>
+
+            <div class="form-row" style="margin-bottom: 4px">
+              <label class="field">
+                <span class="field__label">Top-K candidates</span>
+                <input
+                  name="top_k"
+                  type="number"
+                  value="16"
+                  min="2"
+                  max="256"
+                  step="1"
+                />
+              </label>
+              <label class="field">
+                <span class="field__label">Coarse reps</span>
+                <input
+                  name="coarse_repetitions"
+                  type="number"
+                  value="10"
+                  min="2"
+                  step="1"
+                />
+              </label>
             </div>
           </form>
 
+          <div class="actions">
+            <button class="btn btn--primary" form="runForm" type="submit">
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                <polygon points="3,1.5 11.5,6.5 3,11.5" fill="currentColor" />
+              </svg>
+              Run attack
+            </button>
+            <a
+              class="btn btn--secondary"
+              id="openCsv"
+              href="#"
+              aria-disabled="true"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path
+                  d="M2 10h8M6 2v6M3.5 5.5L6 8l2.5-2.5"
+                  stroke="currentColor"
+                  stroke-width="1.3"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              Export CSV
+            </a>
+          </div>
+
           <div class="status" id="status">
-            <div class="status__line">Idle.</div>
-            <div class="meter" aria-hidden="true"><div class="meter__bar" id="meterBar"></div></div>
+            <div class="status__head">
+              <div class="status__title">Execution status</div>
+              <div class="status__line" id="statusLine">Idle.</div>
+            </div>
+            <div class="meter" aria-hidden="true">
+              <div class="meter__bar" id="meterBar"></div>
+            </div>
           </div>
         </div>
 
-        <div class="card">
-          <h2>Results</h2>
-          <div class="kpis" id="kpis">
-            <div class="kpi"><div class="kpi__k">Attack accuracy</div><div class="kpi__v" id="acc">-</div></div>
-            <div class="kpi"><div class="kpi__k">Samples needed</div><div class="kpi__v" id="samples">-</div></div>
-            <div class="kpi"><div class="kpi__k">Overhead</div><div class="kpi__v" id="overhead">-</div></div>
+        <!-- RESULTS CARD -->
+        <div class="card card--results">
+          <div class="card__header">
+            <div>
+              <div class="section-head__kicker">Output</div>
+              <h2>Results</h2>
+            </div>
+            <span class="card__tag">Live</span>
           </div>
 
-          <div class="mono" id="tags"></div>
+          <div class="kpis" id="kpis">
+            <div class="kpi">
+              <div class="kpi__icon">◎</div>
+              <div class="kpi__k">Attack accuracy</div>
+              <div class="kpi__v" id="acc">—</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi__icon">◔</div>
+              <div class="kpi__k">Samples needed</div>
+              <div class="kpi__v" id="samples">—</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi__icon">↗</div>
+              <div class="kpi__k">Overhead</div>
+              <div class="kpi__v" id="overhead">—</div>
+            </div>
+          </div>
+
+          <div class="panel" style="margin-bottom: 16px">
+            <div class="panel__title">Recovered / reference tags</div>
+            <div class="mono" id="tags"></div>
+          </div>
 
           <div class="plots" id="plots" hidden>
-            <img id="plotP" alt="p-values plot" />
-            <img id="plotM" alt="means plot" />
-            <img id="plotO" alt="overhead plot" />
+            <div class="plot-card">
+              <div class="plot-card__title">P-values per byte position</div>
+              <img id="plotP" alt="p-values plot" />
+            </div>
+            <div class="plot-card">
+              <div class="plot-card__title">Timing means by candidate</div>
+              <img id="plotM" alt="means plot" />
+            </div>
+            <div class="plot-card">
+              <div class="plot-card__title">Overhead distribution</div>
+              <img id="plotO" alt="overhead plot" />
+            </div>
           </div>
         </div>
       </section>
 
-      <section class="note">
-        <h3>What this demonstrates</h3>
-        <p>
-          The API returns the same response text regardless of correctness. The attack relies only on timing
-          differences caused by a vulnerable byte-by-byte comparison (plus optional noise).
-        </p>
-      </section>
+      <div class="note">
+        <div class="note__icon">⚠</div>
+        <div>
+          <h3>What this demonstrates</h3>
+          <p>
+            The API returns the same response text regardless of correctness.
+            The attack depends only on timing differences introduced by a
+            vulnerable byte-by-byte comparison, even when noise is present.
+          </p>
+        </div>
+      </div>
     </main>
 
     <script src="/static/app.js"></script>
