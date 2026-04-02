@@ -371,6 +371,11 @@
         cursor: pointer;
       }
 
+      .form select option {
+        color: var(--ink);
+        background: #0d1520;
+      }
+
       .form input:focus,
       .form select:focus {
         border-color: rgba(0, 212, 184, 0.45);
@@ -490,9 +495,17 @@
         border: 1px solid var(--border2);
       }
 
-      .btn[aria-disabled='true'] {
+      .btn[aria-disabled='true'],
+      .btn:disabled {
         opacity: 0.4;
         pointer-events: none;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .btn--primary.is-running {
+        filter: saturate(0.8);
       }
 
       /* ═══════════════════ STATUS ═══════════════════ */
@@ -589,9 +602,13 @@
       .kpi__v {
         font-family: 'Syne', sans-serif;
         font-weight: 800;
-        font-size: 22px;
+        font-size: clamp(20px, 2.5vw, 22px);
         color: var(--ink);
         letter-spacing: -0.02em;
+        line-height: 1.05;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        text-wrap: balance;
       }
 
       .panel {
@@ -648,10 +665,95 @@
         border-bottom: 1px solid var(--border);
       }
 
+      .plot-frame {
+        position: relative;
+        min-height: 182px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      }
+
       .plot-card img {
         width: 100%;
         display: block;
         background: #fff;
+      }
+
+      .plot-card img[hidden] {
+        display: none;
+      }
+
+      .plot-placeholder {
+        min-height: 182px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        color: var(--muted2);
+        background:
+          linear-gradient(rgba(99, 210, 255, 0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(99, 210, 255, 0.05) 1px, transparent 1px),
+          radial-gradient(circle at top left, rgba(0, 212, 184, 0.08), transparent 45%),
+          radial-gradient(circle at bottom right, rgba(245, 166, 35, 0.08), transparent 45%),
+          rgba(9, 15, 24, 0.92);
+        background-size: 22px 22px, 22px 22px, auto, auto, auto;
+      }
+
+      .plot-placeholder::before,
+      .plot-placeholder::after {
+        content: '';
+        position: absolute;
+        left: 18px;
+        right: 18px;
+        border-radius: 999px;
+        opacity: 0.45;
+      }
+
+      .plot-placeholder::before {
+        top: 38%;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, rgba(0, 212, 184, 0.5), transparent);
+      }
+
+      .plot-placeholder::after {
+        top: 58%;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, rgba(245, 166, 35, 0.45), transparent);
+      }
+
+      .plot-placeholder__content {
+        text-align: center;
+        max-width: 260px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .plot-placeholder__icon {
+        font-size: 24px;
+        line-height: 1;
+        margin-bottom: 10px;
+        color: var(--teal);
+      }
+
+      .plot-placeholder__title {
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--ink);
+        margin-bottom: 8px;
+      }
+
+      .plot-placeholder__text {
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--muted2);
+      }
+
+      .plot-placeholder[hidden] {
+        display: none !important;
+      }
+
+      .plot-frame img[hidden] {
+        display: none !important;
       }
 
       /* ═══════════════════ NOTE ═══════════════════ */
@@ -719,7 +821,16 @@
           rgba(0, 0, 0, 0.03) 4px
         );
       }
-    </style>
+    
+.plot-placeholder__title.compact {
+  font-size: 13px;
+  color: #8aa4c0;
+  opacity: 0.8;
+  margin-top: 6px;
+}
+.plot-placeholder__text { display:none !important; }
+
+</style>
   </head>
   <body>
     <div class="scanlines" aria-hidden="true"></div>
@@ -933,11 +1044,11 @@
           </form>
 
           <div class="actions">
-            <button class="btn btn--primary" form="runForm" type="submit">
+            <button class="btn btn--primary" id="runAttackBtn" form="runForm" type="submit">
               <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
                 <polygon points="3,1.5 11.5,6.5 3,11.5" fill="currentColor" />
               </svg>
-              Run attack
+              <span id="runAttackLabel">Run attack</span>
             </button>
             <a
               class="btn btn--secondary"
@@ -1002,18 +1113,44 @@
             <div class="mono" id="tags"></div>
           </div>
 
-          <div class="plots" id="plots" hidden>
+          <div class="plots" id="plots">
             <div class="plot-card">
               <div class="plot-card__title">P-values per byte position</div>
-              <img id="plotP" alt="p-values plot" />
+              <div class="plot-frame" id="plotFrameP">
+                <div class="plot-placeholder" id="plotPlaceholderP">
+                  <div class="plot-placeholder__content">
+                    <div class="plot-placeholder__icon">∿</div>
+                    <div class="plot-placeholder__title compact">Awaiting run data…</div>
+                  </div>
+                </div>
+                <img id="plotP" alt="p-values plot" hidden />
+              </div>
             </div>
             <div class="plot-card">
               <div class="plot-card__title">Timing means by candidate</div>
-              <img id="plotM" alt="means plot" />
+              <div class="plot-frame" id="plotFrameM">
+                <div class="plot-placeholder" id="plotPlaceholderM">
+                  <div class="plot-placeholder__content">
+                    <div class="plot-placeholder__icon">≋</div>
+                    <div class="plot-placeholder__title">Awaiting run data</div>
+                    <div class="plot-placeholder__text">The best and second-best timing means will appear here so you can compare how separable the guesses are.</div>
+                  </div>
+                </div>
+                <img id="plotM" alt="means plot" hidden />
+              </div>
             </div>
             <div class="plot-card">
               <div class="plot-card__title">Overhead distribution</div>
-              <img id="plotO" alt="overhead plot" />
+              <div class="plot-frame" id="plotFrameO">
+                <div class="plot-placeholder" id="plotPlaceholderO">
+                  <div class="plot-placeholder__content">
+                    <div class="plot-placeholder__icon">↗</div>
+                    <div class="plot-placeholder__title">Awaiting run data</div>
+                    <div class="plot-placeholder__text">After each run, this panel will render the measured verification overhead across different fixed delays.</div>
+                  </div>
+                </div>
+                <img id="plotO" alt="overhead plot" hidden />
+              </div>
             </div>
           </div>
         </div>

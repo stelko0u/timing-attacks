@@ -281,28 +281,41 @@ h2 {
 
 /* ── KPIS ── */
 .kpis {
-  display: grid; grid-template-columns: 1fr 1fr 1fr;
-  gap: 10px; padding: 18px 22px 0;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px; padding: 18px 22px 0;
+  align-items: stretch;
 }
-@media (max-width: 480px) { .kpis { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .kpis { grid-template-columns: 1fr; } }
 
 .kpi {
-  padding: 14px; border-radius: 14px;
-  border: 1px solid var(--border); background: var(--card2);
+  min-height: 140px;
+  padding: 16px 14px 14px; border-radius: 14px;
+  border: 1px solid var(--border); background: linear-gradient(180deg, rgba(19,27,39,.96), rgba(15,21,32,.98));
   position: relative; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: flex-start;
 }
 .kpi::before {
   content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
   background: linear-gradient(90deg, var(--teal), transparent); opacity: .5;
 }
-.kpi__icon { font-size: 16px; margin-bottom: 10px; opacity: .5; }
+.kpi__icon { font-size: 16px; margin-bottom: 12px; opacity: .5; min-height: 18px; }
 .kpi__k {
   font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
-  color: var(--muted); margin-bottom: 6px;
+  color: var(--muted); margin-bottom: 10px; min-height: 24px;
 }
 .kpi__v {
   font-family: 'Syne', sans-serif; font-weight: 800;
-  font-size: 22px; color: var(--ink); letter-spacing: -.02em;
+  font-size: 30px; color: var(--ink); letter-spacing: -.03em;
+  line-height: 1; min-height: 38px;
+  display: flex; align-items: flex-end;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  font-variant-numeric: tabular-nums;
+  transition: font-size .16s ease, transform .18s ease, opacity .18s ease;
+}
+.kpi__v.is-updating {
+  transform: translateY(-1px);
 }
 
 /* ── PANEL ── */
@@ -339,6 +352,10 @@ h2 {
   color: var(--muted); border-bottom: 1px solid var(--border);
 }
 .plot-card img { width: 100%; display: block; background: #fff; }
+
+.plot-frame img[hidden] { display: none !important; }
+.plot-placeholder[hidden] { display: none !important; }
+
 
 /* ── NOTE ── */
 .note {

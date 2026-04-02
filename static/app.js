@@ -34,6 +34,143 @@ function setStatus(line) {
   if (el) el.textContent = line;
 }
 
+let isRunning = false;
+
+function formatMetricNumber(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return String(value ?? '—');
+  return new Intl.NumberFormat('en-US').format(n);
+}
+
+function getMetricText(value, options = {}) {
+  if (value === null || value === undefined) return '—';
+  return options.formatNumber ? formatMetricNumber(value) : String(value);
+}
+
+function fitMetricText(el) {
+  if (!el) return;
+  el.style.whiteSpace = 'nowrap';
+  el.style.overflow = 'visible';
+  el.style.textOverflow = 'clip';
+
+  const parent = el.closest('.kpi');
+  const maxWidth = parent ? parent.clientWidth - 28 : el.clientWidth;
+  if (maxWidth <= 0) return;
+
+  const length = el.textContent.length;
+  let fontSize = 30;
+  if (length >= 14) fontSize = 21;
+  else if (length >= 12) fontSize = 23;
+  else if (length >= 10) fontSize = 25;
+  else if (length >= 8) fontSize = 27;
+
+  el.style.fontSize = `${fontSize}px`;
+
+  while (el.scrollWidth > maxWidth && fontSize > 15) {
+    fontSize -= 1;
+    el.style.fontSize = `${fontSize}px`;
+  }
+}
+
+function setMetricValue(id, value, options = {}) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = getMetricText(value, options);
+  fitMetricText(el);
+}
+
+function animateMetricValue(id, finalValue, options = {}) {
+  const el = document.getElementById(id);
+  if (!el) return;
+
+  if (el._metricFrame) {
+    cancelAnimationFrame(el._metricFrame);
+    el._metricFrame = null;
+  }
+
+  if (finalValue === null || finalValue === undefined || finalValue === '—') {
+    el.textContent = '—';
+    fitMetricText(el);
+    return;
+  }
+
+  const target = Number(finalValue);
+  if (!Number.isFinite(target)) {
+    el.textContent = getMetricText(finalValue, options);
+    fitMetricText(el);
+    return;
+  }
+
+  const duration = options.duration ?? 900;
+  const decimals = options.decimals ?? 0;
+  const suffix = options.suffix ?? '';
+  const formatter = options.formatNumber
+    ? (n) => formatMetricNumber(decimals > 0 ? Number(n.toFixed(decimals)) : Math.round(n))
+    : (n) => (decimals > 0 ? n.toFixed(decimals) : Math.round(n).toString());
+
+  const start = performance.now();
+  const startValue = 0;
+
+  const tick = (now) => {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const current = startValue + (target - startValue) * eased;
+    el.textContent = `${formatter(current)}${suffix}`;
+    fitMetricText(el);
+
+    if (t < 1) {
+      el._metricFrame = requestAnimationFrame(tick);
+    } else {
+      el.textContent = `${formatter(target)}${suffix}`;
+      fitMetricText(el);
+      el._metricFrame = null;
+    }
+  };
+
+  el._metricFrame = requestAnimationFrame(tick);
+}
+
+function setRunState(running) {
+  isRunning = running;
+  const runBtn = document.getElementById('runAttackBtn');
+  const runLabel = document.getElementById('runAttackLabel');
+  if (runBtn) {
+    runBtn.disabled = running;
+    runBtn.setAttribute('aria-disabled', running ? 'true' : 'false');
+    runBtn.classList.toggle('is-running', running);
+  }
+  if (runLabel) {
+    runLabel.textContent = running ? 'Running…' : 'Run attack';
+  }
+}
+
+function resetPlotCard(imgId, placeholderId) {
+  const img = document.getElementById(imgId);
+  const placeholder = document.getElementById(placeholderId);
+  if (img) {
+    img.hidden = true;
+    img.removeAttribute('src');
+  }
+  if (placeholder) placeholder.hidden = false;
+}
+
+function fillPlotCard(imgId, placeholderId, src) {
+  const img = document.getElementById(imgId);
+  const placeholder = document.getElementById(placeholderId);
+  if (!img) return;
+  img.onload = () => {
+    if (placeholder) placeholder.hidden = true;
+    img.hidden = false;
+    img.onload = null;
+  };
+  img.onerror = () => {
+    if (placeholder) placeholder.hidden = false;
+    img.hidden = true;
+    img.onerror = null;
+  };
+  img.src = src;
+}
+
 function setMeter(pct) {
   const el = document.getElementById("meterBar");
   if (!el) return;
@@ -70,9 +207,9 @@ async function pollRun(runId, totalBytes) {
       setStatus("Done.");
       setMeter(100);
 
-      setText("acc", `${metrics.attack_accuracy.toFixed(1)}%`);
-      setText("samples", String(metrics.samples_needed));
-      setText("overhead", `${metrics.overhead_ms.toFixed(2)} ms`);
+      animateMetricValue("acc", metrics.attack_accuracy, { decimals: 1, suffix: '%', duration: 850 });
+      animateMetricValue("samples", metrics.samples_needed, { formatNumber: true, duration: 1000 });
+      animateMetricValue("overhead", metrics.overhead_ms, { decimals: 2, suffix: ' ms', duration: 900 });
 
       const tags = document.getElementById("tags");
       if (tags) {
@@ -85,10 +222,9 @@ async function pollRun(runId, totalBytes) {
       }
 
       if (plots && plotP && plotM && plotO) {
-        plotP.src = `/runs/${encodeURIComponent(runId)}/pvalues.png`;
-        plotM.src = `/runs/${encodeURIComponent(runId)}/means.png`;
-        plotO.src = `/runs/${encodeURIComponent(runId)}/overhead.png`;
-        plots.hidden = false;
+        fillPlotCard("plotP", "plotPlaceholderP", `/runs/${encodeURIComponent(runId)}/pvalues.png`);
+        fillPlotCard("plotM", "plotPlaceholderM", `/runs/${encodeURIComponent(runId)}/means.png`);
+        fillPlotCard("plotO", "plotPlaceholderO", `/runs/${encodeURIComponent(runId)}/overhead.png`);
       }
       return;
     }
@@ -99,34 +235,62 @@ async function pollRun(runId, totalBytes) {
 
 document.getElementById("runForm").addEventListener("submit", async (e) => {
   e.preventDefault();
+  if (isRunning) return;
+
   const form = e.currentTarget;
   const payload = formToJson(form);
+  setRunState(true);
 
-  setStatus("Queued...");
-  setMeter(0);
-  setText("acc", "-");
-  setText("samples", "-");
-  setText("overhead", "-");
-  const tags = document.getElementById("tags");
-  if (tags) tags.textContent = "";
+  try {
+    setStatus("Queued...");
+    setMeter(0);
+    setMetricValue("acc", "—");
+    setMetricValue("samples", "—");
+    setMetricValue("overhead", "—");
+    const tags = document.getElementById("tags");
+    if (tags) tags.textContent = "";
 
-  const csvBtn = document.getElementById("openCsv");
-  if (csvBtn) {
-    csvBtn.href = "#";
-    csvBtn.setAttribute("aria-disabled", "true");
+    const csvBtn = document.getElementById("openCsv");
+    if (csvBtn) {
+      csvBtn.href = "#";
+      csvBtn.setAttribute("aria-disabled", "true");
+    }
+
+    resetPlotCard("plotP", "plotPlaceholderP");
+    resetPlotCard("plotM", "plotPlaceholderM");
+    resetPlotCard("plotO", "plotPlaceholderO");
+
+    const resp = await fetch("/api/v1/attack", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!resp.ok) {
+      throw new Error(`Request failed with status ${resp.status}`);
+    }
+
+    const out = await resp.json();
+    const runId = out.run_id;
+    if (!runId) {
+      throw new Error("Run id missing from server response");
+    }
+
+    const totalBytes = Number(payload.tag_len || 32);
+    setStatus(`Running... (run_id=${runId})`);
+    await pollRun(runId, totalBytes);
+  } catch (error) {
+    setStatus(`Error: ${error.message || "unknown"}`);
+    setMeter(0);
+  } finally {
+    setRunState(false);
   }
-  const plots = document.getElementById("plots");
-  if (plots) plots.hidden = true;
+});
 
-  const resp = await fetch("/api/v1/attack", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+
+window.addEventListener('resize', () => {
+  ['acc', 'samples', 'overhead'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) fitMetricText(el);
   });
-
-  const out = await resp.json();
-  const runId = out.run_id;
-  const totalBytes = Number(payload.tag_len || 32);
-  setStatus(`Running... (run_id=${runId})`);
-  await pollRun(runId, totalBytes);
 });
